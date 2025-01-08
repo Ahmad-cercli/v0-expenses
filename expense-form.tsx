@@ -116,16 +116,17 @@ export default function ExpenseForm() {
           </Select>
         </div>
         <div>
-          <Label htmlFor="file">Upload File or drop it here (png, jpg, jpeg only)</Label>
+          <Label htmlFor="file">Upload File or drop it here (png, jpg, jpeg, pdf only)</Label>
           <div className="relative">
             <Input
               id="file"
               type="file"
-              accept=".png,.jpg,.jpeg"
+              accept=".png,.jpg,.jpeg,.pdf"
               onChange={handleFileChange}
               className="bg-[#f4fbff]"
               disabled={isLoading}
               ref={fileInputRef}
+              multiple={false}
             />
             {isLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-white/50">
