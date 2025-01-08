@@ -1,28 +1,30 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CalendarIcon } from 'lucide-react'
-import { format } from "date-fns"
+import { CalendarIcon, Loader2 } from 'lucide-react'
+import { format, parse } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
-const categories = ["Food", "Transport", "Entertainment", "Utilities", "Other"]
-const currencies = ["USD", "AED", "EUR", "GBP", "JPY"]
+const categories = ["Air Transportation", "Communications", "Meals", "Entertainment", "Equipment", "Ground Transportation", "Insurance", "Legal", "Other", "Travel"]
+const currencies = ["AED", "AFN", "ALL", "AMD", "ANG", "AOA", "ARS", "AUD", "AWG", "AZN", "BAM", "BBD", "BDT", "BGN", "BHD", "BIF", "BMD", "BND", "BOB", "BRL", "BSD", "BTN", "BWP", "BYN", "BZD", "CAD", "CDF", "CHF", "CLP", "CNY", "COP", "CRC", "CUC", "CUP", "CVE", "CZK", "DJF", "DKK", "DOP", "DZD", "EGP", "ERN", "ETB", "EUR", "FJD", "FKP", "GBP", "GEL", "GGP", "GHS", "GIP", "GMD", "GNF", "GTQ", "GYD", "HKD", "HNL", "HRK", "HTG", "HUF", "IDR", "ILS", "IMP", "INR", "IQD", "IRR", "ISK", "JEP", "JMD", "JOD", "JPY", "KES", "KGS", "KHR", "KMF", "KPW", "KRW", "KWD", "KYD", "KZT", "LAK", "LBP", "LKR", "LRD", "LSL", "LYD", "MAD", "MDL", "MGA", "MKD", "MMK", "MNT", "MOP", "MRU", "MUR", "MVR", "MWK", "MXN", "MYR", "MZN", "NAD", "NGN", "NIO", "NOK", "NPR", "NZD", "OMR", "PAB", "PEN", "PGK", "PHP", "PKR", "PLN", "PYG", "QAR", "RON", "RSD", "RUB", "RWF", "SAR", "SBD", "SCR", "SDG", "SEK", "SGD", "SHP", "SLL", "SOS", "SPL", "SRD", "STN", "SVC", "SYP", "SZL", "THB", "TJS", "TMT", "TND", "TOP", "TRY", "TTD", "TVD", "TWD", "TZS", "UAH", "UGX", "USD", "UYU", "UZS", "VEF", "VND", "VUV", "WST", "XAF", "XCD", "XDR", "XOF", "XPF", "YER", "ZAR", "ZMW", "ZWD"]
 
 export default function ExpenseForm() {
   const [file, setFile] = useState<File | null>(null)
+  const [merchant, setMerchant] = useState<string>("")
   const [category, setCategory] = useState<string>("")
   const [currency, setCurrency] = useState<string>("USD")
   const [amount, setAmount] = useState<string>("0.00")
   const [date, setDate] = useState<Date>()
   const [model, setModel] = useState<string>("cohere/command-r-08-2024")
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -39,24 +41,37 @@ export default function ExpenseForm() {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('model', model)
+    // Add the file separately
+    formData.append('file', file)
+    
+    // Add the info object as JSON
+    const info = {
+      model: model,
+      provider: model === "mistralai/mixtral-8x7b-instruct" ? "Fireworks" : "Cohere"
+    }
+    formData.append('info', JSON.stringify(info))
 
     try {
-      const response = await fetch('/api/process-file', {
+      const response = await fetch('https://ff29-2001-8f8-1135-2f25-8d93-6e9b-e518-8e23.ngrok-free.app/process_file', {
         method: 'POST',
         body: formData,
       })
+
+      console.log("response: ", response)
 
       if (!response.ok) {
         throw new Error('File processing failed')
       }
 
       const data = await response.json()
+      console.log("data: ", data)
       
       // Update form fields based on the API response
+      setMerchant(data.merchant || "")
       setCategory(data.category || "")
       setCurrency(data.currency || "USD")
       setAmount(data.amount?.toString() || "0.00")
-      setDate(data.date ? new Date(data.date) : undefined)
+      setDate(data.date ? parse(data.date, 'dd/MM/yyyy', new Date()) : undefined)
     } catch (error) {
       console.error('Error processing file:', error)
       // Handle error (e.g., show an error message to the user)
@@ -66,7 +81,11 @@ export default function ExpenseForm() {
   }
 
   const handleReset = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
     setFile(null)
+    setMerchant("")
     setCategory("")
     setCurrency("USD")
     setAmount("0.00")
@@ -97,17 +116,37 @@ export default function ExpenseForm() {
           </Select>
         </div>
         <div>
-          <Label htmlFor="file">Upload File (PNG, JPEG, JPG)</Label>
-          <Input
-            id="file"
-            type="file"
-            accept=".png,.jpg,.jpeg"
-            onChange={handleFileChange}
-            className="bg-[#f4fbff]"
-            disabled={isLoading}
-          />
+          <Label htmlFor="file">Upload File or drop it here (png, jpg, jpeg only)</Label>
+          <div className="relative">
+            <Input
+              id="file"
+              type="file"
+              accept=".png,.jpg,.jpeg"
+              onChange={handleFileChange}
+              className="bg-[#f4fbff]"
+              disabled={isLoading}
+              ref={fileInputRef}
+            />
+            {isLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-white/50">
+                <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+              </div>
+            )}
+          </div>
         </div>
         <hr className="my-6 border-t border-gray-200" />
+        <div>
+          <Label htmlFor="merchant">Merchant</Label>
+          <Input
+            id="merchant"
+            type="text"
+            value={merchant}
+            onChange={(e) => setMerchant(e.target.value)}
+            className=""
+            disabled={isLoading}
+            placeholder='Enter merchant name'
+          />
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="category">Category</Label>
