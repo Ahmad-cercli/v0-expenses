@@ -25,6 +25,9 @@ export default function ExpenseForm() {
   const [model, setModel] = useState<string>("cohere/command-r-08-2024")
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [ocrTime, setOcrTime] = useState<number | null>(null)
+  const [llmTime, setLlmTime] = useState<number | null>(null)
+  const [totalTime, setTotalTime] = useState<number | null>(null)
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -57,8 +60,6 @@ export default function ExpenseForm() {
         body: formData,
       })
 
-      console.log("response: ", response)
-
       if (!response.ok) {
         throw new Error('File processing failed')
       }
@@ -72,6 +73,9 @@ export default function ExpenseForm() {
       setCurrency(data.currency || "USD")
       setAmount(data.amount?.toString() || "0.00")
       setDate(data.date ? parse(data.date, 'dd/MM/yyyy', new Date()) : undefined)
+      setOcrTime(data.ocr_time || null)
+      setLlmTime(data.llm_time || null)
+      setTotalTime(data.total_time || null)
     } catch (error) {
       console.error('Error processing file:', error)
       // Handle error (e.g., show an error message to the user)
@@ -216,6 +220,21 @@ export default function ExpenseForm() {
               />
             </PopoverContent>
           </Popover>
+        </div>
+        <div>
+          {(ocrTime || llmTime || totalTime) && (
+            <div className="mt-4 space-y-2 text-sm text-gray-600">
+              {ocrTime !== null && (
+                <p>Time taken to do OCR: {ocrTime.toFixed(2)}s</p>
+              )}
+              {llmTime !== null && (
+                <p>Time taken for LLM inference: {llmTime.toFixed(2)}s</p>
+              )}
+              {totalTime !== null && (
+                <p>Total time: {totalTime.toFixed(2)}s</p>
+              )}
+            </div>
+          )}
         </div>
       </CardContent>
       <CardFooter className="flex justify-end">
