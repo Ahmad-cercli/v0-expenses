@@ -231,7 +231,10 @@ export default function ExpenseForm() {
                 <p>Time taken for LLM inference: {llmTime.toFixed(2)}s</p>
               )}
               {totalTime !== null && (
-                <p>Total time: {totalTime.toFixed(2)}s</p>
+                <div>
+                  <p>Total time: {totalTime.toFixed(2)}s</p>
+                  <p>Because the backend is currently running on my machine it takes time to receive the API request, but the total time above is the time taken from "request received" to "response sent"</p>
+                </div>
               )}
             </div>
           )}
