@@ -134,7 +134,7 @@ export default function ExpenseForm() {
             />
             {isLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-white/50">
-                <Loader2 className="h-6 w-6 text-gray-500" style={{ animation: 'spin 0.5s linear infinite' }} />
+                <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
               </div>
             )}
           </div>
